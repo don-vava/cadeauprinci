@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎀 La Roulette de Princilia 🎀</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple: #b44fd4;
+    --pink: #f0589a;
+    --gold: #f5c842;
+    --lavender: #e8d5f5;
+    --bg: #fdf0ff;
+    --dark: #3a0050;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Floating confetti bg ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, #f8d0ff44 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, #ffd0e844 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, #d0e8ff33 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 24px 16px 12px;
+  }
+
+  .stars-row { font-size: 22px; letter-spacing: 6px; margin-bottom: 6px; }
+
+  h1 {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(28px, 6vw, 48px);
+    background: linear-gradient(135deg, var(--purple), var(--pink), #f5a030);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: var(--purple);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* ── Layout ── */
+  .main {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 16px 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  /* ── Wheel ── */
+  .wheel-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .wheel-wrap {
+    position: relative;
+    width: 320px;
+    height: 320px;
+  }
+
+  #wheelCanvas {
+    border-radius: 50%;
+    box-shadow: 0 0 0 5px var(--purple), 0 0 0 8px var(--pink), 0 12px 40px rgba(180,79,212,0.35);
+    transition: transform 0.016s linear;
+  }
+
+  .pointer {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 34px solid var(--purple);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+    z-index: 10;
+  }
+
+  .spin-btn {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    color: white;
+    border: none;
+    padding: 14px 44px;
+    border-radius: 60px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(180,79,212,0.45);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .spin-btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 8px 28px rgba(180,79,212,0.55); }
+  .spin-btn:active:not(:disabled) { transform: scale(0.97); }
+  .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .counter {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--purple);
+    background: white;
+    border: 2px solid var(--lavender);
+    border-radius: 30px;
+    padding: 6px 20px;
+  }
+
+  /* ── Gifts grid ── */
+  .gifts-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+  .gifts-col h2 {
+    font-family: 'Pacifico', cursive;
+    font-size: 18px;
+    color: var(--purple);
+    text-align: center;
+  }
+
+  .gifts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .gift-card {
+    background: white;
+    border: 2px solid #e8c0f8;
+    border-radius: 14px;
+    padding: 10px 6px 8px;
+    text-align: center;
+    transition: all 0.4s ease;
+    min-width: 72px;
+  }
+
+  .gift-card.found {
+    background: #f0f0f0;
+    border-color: #ddd;
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+
+  .gift-emoji { font-size: 26px; display: block; }
+  .gift-num { font-size: 13px; font-weight: 800; color: var(--purple); margin-top: 3px; }
+  .gift-card.found .gift-num { color: #aaa; text-decoration: line-through; }
+  .found-check { font-size: 18px; display: none; }
+  .gift-card.found .found-check { display: block; }
+  .gift-card.found .gift-emoji { display: none; }
+
+  /* ── Popup ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(80, 0, 120, 0.5);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .overlay.show { opacity: 1; pointer-events: all; }
+
+  .popup {
+    background: white;
+    border-radius: 28px;
+    padding: 2rem 2.5rem;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(100,0,160,0.35);
+    border: 3px solid var(--purple);
+    transform: scale(0.75) translateY(30px);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 340px;
+    width: 90%;
+  }
+
+  .overlay.show .popup { transform: scale(1) translateY(0); }
+
+  .popup-big-emoji { font-size: 60px; display: block; margin-bottom: 4px; }
+  .popup-label { font-size: 14px; color: #aaa; font-weight: 600; }
+  .popup-num {
+    font-family: 'Pacifico', cursive;
+    font-size: 64px;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  .popup-msg { font-size: 14px; color: #888; font-style: italic; margin: 6px 0; }
+  .popup-counter {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--purple);
+    background: var(--lavender);
+    border-radius: 20px;
+    padding: 8px 18px;
+    margin: 10px 0 16px;
+  }
+
+  .popup-btn {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(180,79,212,0.4);
+    transition: transform 0.15s;
+  }
+
+  .popup-btn:hover { transform: scale(1.04); }
+
+  /* ── Final screen ── */
+  #finalScreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0d0020;
+    z-index: 500;
+    overflow-y: auto;
+    text-align: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  #finalScreen.show { display: block; }
+
+  .final-fireworks { font-size: 32px; letter-spacing: 6px; margin-bottom: 16px; animation: bounce 1s infinite alternate; }
+
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+
+  .final-title {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(26px, 5vw, 42px);
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  .final-msg {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(22px, 4.5vw, 36px);
+    background: linear-gradient(135deg, var(--pink), #ff9a3c, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 8px 0 20px;
+  }
+
+  .final-sub { color: rgba(255,255,255,0.7); font-size: 15px; font-weight: 600; margin-bottom: 24px; }
+
+  #finalPhoto {
+    max-width: min(480px, 90vw);
+    max-height: 50vh;
+    border-radius: 20px;
+    border: 5px solid var(--purple);
+    box-shadow: 0 0 0 3px var(--pink), 0 20px 60px rgba(180,79,212,0.5);
+    object-fit: contain;
+    margin: 0 auto;
+    display: block;
+  }
+
+  .final-bottom { font-size: 24px; letter-spacing: 4px; margin-top: 24px; }
+
+  /* ── Confetti animation ── */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 14px;
+    top: -20px;
+    opacity: 0;
+    animation: confettiFall linear forwards;
+    z-index: 999;
+    pointer-events: none;
+    border-radius: 2px;
+  }
+
+  @keyframes confettiFall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+  }
+
+  /* ── Sparkle on win ── */
+  @keyframes sparkle {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.15); }
+  }
+
+  .gift-card.just-found { animation: sparkle 0.4s ease 2; }
+
+  /* ── Responsive ── */
+  @media (max-width: 500px) {
+    .wheel-wrap { width: 270px; height: 270px; }
+    #wheelCanvas { width: 270px; height: 270px; }
+    .gifts-grid { grid-template-columns: repeat(3, 1fr); }
+    .gift-card { min-width: 60px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="stars-row">⭐🌸✨🎀✨🌸⭐</div>
+    <h1>La Roulette de Princilia</h1>
+    <p class="subtitle">Tourne la roue pour déballer tes cadeaux ! 🎁</p>
+  </header>
+
+  <div class="main">
+
+    <!-- WHEEL -->
+    <div class="wheel-col">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+      </div>
+      <button class="spin-btn" id="spinBtn" onclick="spin()">🌟 Tourner ! 🌟</button>
+      <div class="counter" id="counter">12 cadeaux restants 🎁</div>
+    </div>
+
+    <!-- GIFTS -->
+    <div class="gifts-col">
+      <h2>🎁 Les cadeaux de Princilia 🎁</h2>
+      <div class="gifts-grid" id="giftsGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="overlay" id="overlay">
+  <div class="popup">
+    <span class="popup-big-emoji" id="popupEmoji">🎁</span>
+    <div class="popup-label">Cadeau numéro</div>
+    <div class="popup-num" id="popupNum">7</div>
+    <div class="popup-msg" id="popupMsg">C'est l'heure de déballer !</div>
+    <div class="popup-counter" id="popupCounter">Il reste 11 cadeaux 🎁</div>
+    <button class="popup-btn" onclick="closePopup()">Déballer ! 🎊</button>
+  </div>
+</div>
+
+<!-- FINAL SCREEN -->
+<div id="finalScreen">
+  <div class="final-fireworks">🎊🎉🎀🌟🎊🎉🎀🌟🎊</div>
+  <div class="final-title">Tous les cadeaux sont déballés !</div>
+  <div class="final-msg">Bon à l'année prochaine ! 🎀</div>
+  <div class="final-sub">Avec tout notre amour 💜✨</div>
+  <img id="finalPhoto" src="IMG_1779-removebg-preview.png" alt="Photo de fin">
+  <div class="final-bottom">🌸✨🎀👑🌟💜🌸✨🎀👑🌟💜</div>
+</div>
+
+<script>
+const GIFTS = [
+  {num:1,  emoji:"🎀"}, {num:2,  emoji:"🌸"}, {num:3,  emoji:"💜"},
+  {num:4,  emoji:"✨"}, {num:5,  emoji:"🌟"}, {num:6,  emoji:"🦋"},
+  {num:7,  emoji:"👑"}, {num:8,  emoji:"🌈"}, {num:9,  emoji:"💫"},
+  {num:10, emoji:"🎠"}, {num:11, emoji:"🌺"}, {num:12, emoji:"🎊"},
+];
+
+const COLORS = [
+  "#c460f5","#f5609a","#f5a360","#60c4f5",
+  "#f560c4","#a360f5","#f5e060","#60f5a3",
+  "#f56060","#60f5f5","#f5b060","#b0f560",
+];
+
+const MSGS = [
+  "C'est l'heure de déballer ! 🎀",
+  "Quelle surprise t'attend ? 🌟",
+  "Un cadeau rien que pour toi ! 👑",
+  "La magie opère ! ✨",
+  "Oh ! Regarde ce beau cadeau ! 🌸",
+  "Incroyable ! Tu as de la chance ! 🍀",
+];
+
+let remaining = [...GIFTS];
+let found = [];
+let spinning = false;
+let angle = 0;
+let rafId = null;
+let winner = null;
+
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+
+/* ── Draw wheel ── */
+function drawWheel() {
+  const items = remaining.length ? remaining : GIFTS;
+  const n = items.length;
+  const cx = 160, cy = 160, r = 152;
+  ctx.clearRect(0, 0, 320, 320);
+
+  items.forEach((g, i) => {
+    const start = angle + (i / n) * Math.PI * 2 - Math.PI / 2;
+    const end   = start + (Math.PI * 2 / n);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = COLORS[i % COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Number
+    const mid = start + (end - start) / 2;
+    const tx = cx + r * 0.65 * Math.cos(mid);
+    const ty = cy + r * 0.65 * Math.sin(mid);
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(mid + Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Nunito, sans-serif';
+    ctx.fillText(g.num, 0, 0);
+    ctx.restore();
+  });
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = '#b44fd4';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  // Center
+  ctx.beginPath();
+  ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = '#b44fd4';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.font = '20px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🎀', cx, cy + 1);
+}
+
+/* ── Gift grid ── */
+function renderGrid() {
+  const grid = document.getElementById('giftsGrid');
+  grid.innerHTML = '';
+  GIFTS.forEach(g => {
+    const isFound = found.includes(g.num);
+    const card = document.createElement('div');
+    card.className = 'gift-card' + (isFound ? ' found' : '');
+    card.id = 'card-' + g.num;
+    card.innerHTML = `
+      <span class="gift-emoji">${g.emoji}</span>
+      <span class="found-check">✅</span>
+      <div class="gift-num">N°${g.num}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+/* ── Counter ── */
+function updateCounter(rem) {
+  const el = document.getElementById('counter');
+  if (rem === 0) el.textContent = '🎉 Tous déballés !';
+  else if (rem === 1) el.textContent = '1 cadeau restant 🎁';
+  else el.textContent = `${rem} cadeaux restants 🎁`;
+}
+
+/* ── Spin ── */
+function spin() {
+  if (spinning || !remaining.length) return;
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  winner = remaining[Math.floor(Math.random() * remaining.length)];
+  const n = remaining.length;
+  const arc = (Math.PI * 2) / n;
+  const winIdx = remaining.indexOf(winner);
+
+  // Target: winner slice center at top (pointer)
+  const extraSpins = (6 + Math.floor(Math.random() * 5)) * Math.PI * 2;
+  const currentCenter = angle + winIdx * arc + arc / 2;
+  const targetCenter  = Math.PI * 2 - (currentCenter % (Math.PI * 2));
+  const targetAngle   = angle + extraSpins + targetCenter;
+
+  const duration = 4000 + Math.random() * 1000;
+  const startAngle = angle;
+  const startTime = performance.now();
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function frame(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    angle = startAngle + (targetAngle - startAngle) * easeOut(t);
+    drawWheel();
+    if (t < 1) {
+      rafId = requestAnimationFrame(frame);
+    } else {
+      angle = targetAngle;
+      drawWheel();
+      spinning = false;
+      revealWinner();
+    }
+  }
+
+  rafId = requestAnimationFrame(frame);
+}
+
+/* ── Reveal ── */
+function revealWinner() {
+  const g = winner;
+  found.push(g.num);
+  remaining = remaining.filter(x => x.num !== g.num);
+  renderGrid();
+  drawWheel();
+
+  // Sparkle found card
+  const card = document.getElementById('card-' + g.num);
+  if (card) { card.classList.add('just-found'); }
+
+  const rem = remaining.length;
+  updateCounter(rem);
+
+  // Popup
+  document.getElementById('popupEmoji').textContent = g.emoji;
+  document.getElementById('popupNum').textContent = g.num;
+  document.getElementById('popupMsg').textContent = MSGS[Math.floor(Math.random() * MSGS.length)];
+
+  let counterTxt;
+  if (rem === 0)     counterTxt = '🎊 C\'était le dernier cadeau !';
+  else if (rem === 1) counterTxt = 'Il reste 1 cadeau à déballer ! 🎁';
+  else               counterTxt = `Il reste ${rem} cadeaux à déballer ! 🎁`;
+  document.getElementById('popupCounter').textContent = counterTxt;
+
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('overlay').classList.remove('show');
+  if (!remaining.length) {
+    showFinal();
+  } else {
+    document.getElementById('spinBtn').disabled = false;
+  }
+}
+
+/* ── Confetti ── */
+function launchConfetti() {
+  const colors = ['#c460f5','#f5609a','#f5c842','#60c4f5','#60f5a3','#f5a360'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.animationDuration = (2 + Math.random() * 2) + 's';
+      el.style.animationDelay = (Math.random() * 1) + 's';
+      el.style.width = (8 + Math.random() * 8) + 'px';
+      el.style.height = (10 + Math.random() * 10) + 'px';
+      el.style.transform = `rotate(${Math.random() * 360}deg)`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 40);
+  }
+}
+
+/* ── Final ── */
+function showFinal() {
+  launchConfetti();
+  setTimeout(() => {
+    document.getElementById('finalScreen').classList.add('show');
+    launchConfetti();
+  }, 300);
+}
+
+/* ── Init ── */
+renderGrid();
+drawWheel();
+updateCounter(12);
+</script>
+</body>
+</html>
